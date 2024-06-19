@@ -1,0 +1,37 @@
+[workspace]
+members = ["bin/*"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[package]
+name = "dagrid"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+standalone = ["nih_plug/standalone"]
+
+[dependencies]
+daggy = { version = "0.8.0", features = ["serde"] }
+nih_plug = { git = "https://github.com/robbert-vdh/nih-plug", version = "0.0.0", features = [
+    "simd",
+] }
+rand = "0.8.5"
+rand_pcg = "0.3.1"
+
+[dev-dependencies]
+criterion = "0.5.1"
+glicol = "0.13.5"
+owo-colors = "4.0.0"
+
+[profile.bench]
+inherits = "release"
+debug = true
+
+[profile.test]
+inherits = "dev"
+
+[[bench]]
+name = "controlgraph"
+harness = false
