@@ -1,5 +1,6 @@
 #![allow(unused_imports)]
 
+use std::str::FromStr;
 use std::{fs::File, io::Write, path::PathBuf};
 
 use crate::assert_glicol_ref_eq;
@@ -11,9 +12,7 @@ mod glicol;
 
 #[allow(dead_code)]
 fn record_graph(test_name: &str, cg: &ControlGraph) {
-    let mut graphs_path = file!().parse::<PathBuf>().unwrap();
-    graphs_path.pop();
-    graphs_path.push("graphs");
+    let graphs_path = PathBuf::from_str("src/tests/graphs").unwrap();
 
     std::fs::create_dir_all(&graphs_path).unwrap();
     let mut graph_file = File::create(graphs_path.join(format!("{test_name}.dot"))).unwrap();
