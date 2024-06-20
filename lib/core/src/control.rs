@@ -96,19 +96,23 @@ impl ControlGraph {
     }
 
     fn update_node(&mut self, node: NodeIndex) -> Sample {
-        // let mut parents = self.dag.parents(node);
         let mut parents = self.dag.neighbors_directed(node, Incoming).detach();
         let input_arena_ptr = self.dag.node_weight(node).unwrap().input_arena_ptr;
 
-        // for (e, n) in parents.next(&self.dag) {
         while let Some((e, n)) = parents.next(&self.dag) {
-            if self.dag.node_weight(n).unwrap().gen <= self.phase {
+            let parent_node = self.dag.node_weight(n).unwrap();
+            if parent_node.gen <= self.phase {
                 self.node_input_arena[*self.dag.edge_weight(e).unwrap() + input_arena_ptr] =
                     self.update_node(n);
             }
         }
 
-        self.dag.node_weight_mut(node).unwrap().gen += 1;
+        // Set generation to `u64::MAX` for const nodes to avoid recalculating
+        if self.dag.node_weight(node).unwrap().node.get_ident() == "Constant" {
+            self.dag.node_weight_mut(node).unwrap().gen = u64::MAX;
+        } else {
+            self.dag.node_weight_mut(node).unwrap().gen += 1;
+        }
 
         let node = &self.dag.node_weight(node).unwrap().node;
         node.process(
