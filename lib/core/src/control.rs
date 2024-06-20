@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
-use super::container::Container;
-use super::node::*;
+use crate::container::Container;
+use crate::node::*;
 
 use daggy::{Dag, NodeIndex, Walker};
 
@@ -112,7 +112,7 @@ impl ControlGraph {
         )
     }
 
-    pub(crate) fn set_sample_rate(&mut self, sample_rate: u32) {
+    pub fn set_sample_rate(&mut self, sample_rate: u32) {
         self.sample_rate = sample_rate;
     }
 

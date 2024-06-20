@@ -1,18 +1,10 @@
-[workspace]
-members = ["bin/*", "lib/*"]
-
 [package]
-name = "dagrid"
+name = "dagrid-plugin"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 nih_plug = { git = "https://github.com/robbert-vdh/nih-plug", version = "0.0.0", features = [
     "simd",
-    "standalone",
 ] }
-dagrid-plugin = { path = "lib/plugin" }
-
-[profile.bench]
-inherits = "release"
-debug = 2
+dagrid-core = { path = "../core" }

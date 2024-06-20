@@ -2,10 +2,10 @@
 
 use std::{fs::File, io::Write, path::PathBuf};
 
-use super::container::*;
-use super::control::ControlGraph;
-use super::node::*;
 use crate::assert_glicol_ref_eq;
+use crate::container::*;
+use crate::control::ControlGraph;
+use crate::node::*;
 
 mod glicol;
 
@@ -18,7 +18,7 @@ fn record_graph(test_name: &str, cg: &ControlGraph) {
     std::fs::create_dir_all(&graphs_path).unwrap();
     let mut graph_file = File::create(graphs_path.join(format!("{test_name}.dot"))).unwrap();
     graph_file
-        .write_all(super::vis::visualize_graph(cg).as_bytes())
+        .write_all(crate::vis::visualize_graph(cg).as_bytes())
         .unwrap();
 }
 

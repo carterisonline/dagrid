@@ -1,6 +1,6 @@
 use daggy::NodeIndex;
 
-use super::control::ControlGraph;
+use crate::control::ControlGraph;
 
 pub fn visualize_graph(cg: &ControlGraph) -> String {
     let node_indexes = cg.get_node_indexes();

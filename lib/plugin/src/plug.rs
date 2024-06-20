@@ -1,23 +1,11 @@
-#![allow(unused_attributes)]
-#![feature(macro_metavar_expr)]
-
-pub mod container;
-pub mod control;
-pub mod node;
-pub mod util;
-pub mod vis;
-
-#[cfg(test)]
-mod tests;
-
-use nih_plug::prelude::*;
-use nih_plug::util as nih_util;
 use std::sync::Arc;
 
-use control::ControlGraph;
+use nih_plug::prelude::*;
 
-// TODO this uses boilerplate from https://github.com/robbert-vdh/nih-plug/blob/master/plugins/examples/sine/src/lib.rs
-// that is largely untouched, so there's a lot of dead code. However it does actually output from the control graph
+use dagrid_core::control::ControlGraph;
+use dagrid_core::node::*;
+
+use crate::params::DaGridParams;
 
 pub struct DaGrid {
     params: Arc<DaGridParams>,
@@ -37,23 +25,15 @@ pub struct DaGrid {
     midi_note_gain: Smoother<f32>,
 }
 
-#[derive(Params)]
-struct DaGridParams {
-    #[id = "gain"]
-    pub gain: FloatParam,
-
-    #[id = "freq"]
-    pub frequency: FloatParam,
-
-    #[id = "usemid"]
-    pub use_midi: BoolParam,
+impl DaGrid {
+    fn eval_control_graph(&mut self, _frequency: f32) -> f32 {
+        self.control_graph.next_sample().0 as f32
+    }
 }
 
 impl Default for DaGrid {
     fn default() -> Self {
         let mut cg = ControlGraph::new(0);
-
-        use node::*;
 
         let s1 = cg.connect_const_new(440.0, Sine);
         let s2 = cg.connect_const_new(220.0, Sine);
@@ -76,59 +56,11 @@ impl Default for DaGrid {
     }
 }
 
-impl Default for DaGridParams {
-    fn default() -> Self {
-        Self {
-            gain: FloatParam::new(
-                "Gain",
-                -10.0,
-                FloatRange::Linear {
-                    min: -30.0,
-                    max: 0.0,
-                },
-            )
-            .with_smoother(SmoothingStyle::Linear(3.0))
-            .with_step_size(0.01)
-            .with_unit(" dB"),
-            frequency: FloatParam::new(
-                "Frequency",
-                420.0,
-                FloatRange::Skewed {
-                    min: 1.0,
-                    max: 20_000.0,
-                    factor: FloatRange::skew_factor(-2.0),
-                },
-            )
-            .with_smoother(SmoothingStyle::Linear(10.0))
-            // We purposely don't specify a step size here, but the parameter should still be
-            // displayed as if it were rounded. This formatter also includes the unit.
-            .with_value_to_string(formatters::v2s_f32_hz_then_khz(0))
-            .with_string_to_value(formatters::s2v_f32_hz_then_khz()),
-            use_midi: BoolParam::new("Use MIDI", false),
-        }
-    }
-}
-
-impl DaGrid {
-    fn calculate_sine(&mut self, _frequency: f32) -> f32 {
-        self.control_graph.next_sample().0 as f32
-        // let phase_delta = frequency / self.sample_rate;
-        // let sine = (self.phase * consts::TAU).sin();
-
-        // self.phase += phase_delta;
-        // if self.phase >= 1.0 {
-        //     self.phase -= 1.0;
-        // }
-
-        // sine
-    }
-}
-
 impl Plugin for DaGrid {
-    const NAME: &'static str = "Sine Test Tone";
-    const VENDOR: &'static str = "Moist Plugins GmbH";
-    const URL: &'static str = "https://youtu.be/dQw4w9WgXcQ";
-    const EMAIL: &'static str = "info@example.com";
+    const NAME: &'static str = "DaGrid";
+    const VENDOR: &'static str = "carterisonline";
+    const URL: &'static str = "https://github.com/carterisonline/dagrid";
+    const EMAIL: &'static str = "me@carteris.online";
 
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -196,7 +128,7 @@ impl Plugin for DaGrid {
                     match event {
                         NoteEvent::NoteOn { note, velocity, .. } => {
                             self.midi_note_id = note;
-                            self.midi_note_freq = nih_util::midi_note_to_freq(note);
+                            self.midi_note_freq = util::midi_note_to_freq(note);
                             self.midi_note_gain.set_target(self.sample_rate, velocity);
                         }
                         NoteEvent::NoteOff { note, .. } if note == self.midi_note_id => {
@@ -214,14 +146,14 @@ impl Plugin for DaGrid {
                 }
 
                 // This gain envelope prevents clicks with new notes and with released notes
-                self.calculate_sine(self.midi_note_freq) * self.midi_note_gain.next()
+                self.eval_control_graph(self.midi_note_freq) * self.midi_note_gain.next()
             } else {
                 let frequency = self.params.frequency.smoothed.next();
-                self.calculate_sine(frequency)
+                self.eval_control_graph(frequency)
             };
 
             for sample in channel_samples {
-                *sample = sine * nih_util::db_to_gain_fast(gain);
+                *sample = sine * util::db_to_gain_fast(gain);
             }
         }
 
@@ -240,7 +172,3 @@ impl ClapPlugin for DaGrid {
         ClapFeature::Stereo,
     ];
 }
-
-nih_export_clap!(DaGrid);
-
-// no time for vst

@@ -1,4 +1,4 @@
-use super::super::control::ControlGraph;
+use crate::control::ControlGraph;
 use glicol::Engine;
 use owo_colors::OwoColorize;
 

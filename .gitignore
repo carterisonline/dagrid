@@ -1,5 +1,5 @@
 /target
 **/.venv/
-src/tests/graphs
-perf.dat*
-flamegraph.svg
+lib/core/src/tests/graphs/
+**/perf.dat*
+**/flamegraph.svg

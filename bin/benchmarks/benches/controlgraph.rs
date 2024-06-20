@@ -1,12 +1,10 @@
 #![feature(macro_metavar_expr)]
 
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
-#[path = "../src/lib.rs"]
-mod dagrid;
 
-use dagrid::container::*;
-use dagrid::control::ControlGraph;
-use dagrid::node::*;
+use dagrid_core::container::*;
+use dagrid_core::control::ControlGraph;
+use dagrid_core::node::*;
 
 fn subsynth_plain(sample_rate: u32) -> ControlGraph {
     let mut cg = ControlGraph::new(sample_rate);

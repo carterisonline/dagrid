@@ -1,0 +1,11 @@
+[package]
+name = "dagrid-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+daggy = { version = "0.8", features = ["serde"] }
+
+[dev-dependencies]
+glicol = "0.13"
+owo-colors = "4"

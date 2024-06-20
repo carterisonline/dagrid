@@ -1,7 +1,7 @@
 use daggy::NodeIndex;
 
-use super::control::ControlGraph;
-use super::node::*;
+use crate::control::ControlGraph;
+use crate::node::*;
 
 pub trait Container {
     fn get_ident(&self) -> &str;

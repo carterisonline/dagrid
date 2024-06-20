@@ -1,0 +1,13 @@
+[package]
+name = "dagrid-benchmarks"
+version = "0.1.0"
+edition = "2021"
+
+[dev-dependencies]
+criterion = "0.5.1"
+dagrid-core = { path = "../../lib/core" }
+std = { version = "0.16.11", package = "eyra" }
+
+[[bench]]
+name = "controlgraph"
+harness = false
