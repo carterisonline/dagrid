@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-daggy = { version = "0.8", features = ["serde"] }
+petgraph = "0.6"
 
 [dev-dependencies]
 glicol = "0.13"

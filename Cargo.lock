@@ -774,16 +774,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b365fabc795046672053e29c954733ec3b05e4be654ab130fe8f1f94d7051f35"
 
 [[package]]
-name = "daggy"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91a9304e55e9d601a39ae4deaba85406d5c0980e106f65afcf0460e9af1e7602"
-dependencies = [
- "petgraph",
- "serde",
-]
-
-[[package]]
 name = "dagrid"
 version = "0.1.0"
 dependencies = [
@@ -804,9 +794,9 @@ dependencies = [
 name = "dagrid-core"
 version = "0.1.0"
 dependencies = [
- "daggy",
  "glicol",
  "owo-colors",
+ "petgraph",
 ]
 
 [[package]]

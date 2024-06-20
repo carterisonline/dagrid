@@ -1,9 +1,13 @@
 use std::borrow::Cow;
 
+use petgraph::algo::DfsSpace;
+use petgraph::csr::IndexType;
+use petgraph::graph::{DiGraph, NodeIndex};
+use petgraph::visit::{EdgeRef, Visitable};
+use petgraph::{Incoming, Outgoing};
+
 use crate::container::Container;
 use crate::node::*;
-
-use daggy::{Dag, NodeIndex, Walker};
 
 #[derive(Debug)]
 struct NodeData {
@@ -16,7 +20,8 @@ struct NodeData {
 pub struct ControlGraph {
     phase: u64,
     sample_rate: u32,
-    dag: Dag<NodeData, usize, u32>,
+    dag: DiGraph<NodeData, usize, u32>,
+    dag_cycle_state: DfsSpace<NodeIndex, <DiGraph<NodeData, usize, u32> as Visitable>::Map>,
     node_input_arena: Vec<Sample>,
     node_indexes: Vec<NodeIndex>,
     container_idents: Vec<String>,
@@ -29,7 +34,7 @@ pub struct ControlGraph {
 impl ControlGraph {
     /// Returns a new control graph with its `sample_rate` set.
     pub fn new(sample_rate: u32) -> Self {
-        let mut dag = Dag::new();
+        let mut dag = DiGraph::new();
         let aout_node = dag.add_node(NodeData {
             input_arena_ptr: 0,
             gen: 0,
@@ -39,6 +44,7 @@ impl ControlGraph {
             phase: 0,
             sample_rate,
             dag,
+            dag_cycle_state: DfsSpace::default(),
             node_input_arena: vec![f64::NAN.into()],
             node_indexes: vec![],
             container_idents: vec![],
@@ -79,10 +85,9 @@ impl ControlGraph {
     pub fn next_sample(&mut self) -> Sample {
         let sample = self.update_node(
             self.dag
-                .parents(self.aout_node)
-                .walk_next(&self.dag)
-                .unwrap()
-                .1,
+                .neighbors_directed(self.aout_node, Incoming)
+                .next()
+                .unwrap(),
         );
 
         self.phase += 1;
@@ -91,10 +96,12 @@ impl ControlGraph {
     }
 
     fn update_node(&mut self, node: NodeIndex) -> Sample {
-        let mut parents = self.dag.parents(node);
+        // let mut parents = self.dag.parents(node);
+        let mut parents = self.dag.neighbors_directed(node, Incoming).detach();
         let input_arena_ptr = self.dag.node_weight(node).unwrap().input_arena_ptr;
 
-        while let Some((e, n)) = parents.walk_next(&self.dag) {
+        // for (e, n) in parents.next(&self.dag) {
+        while let Some((e, n)) = parents.next(&self.dag) {
             if self.dag.node_weight(n).unwrap().gen <= self.phase {
                 self.node_input_arena[*self.dag.edge_weight(e).unwrap() + input_arena_ptr] =
                     self.update_node(n);
@@ -120,8 +127,8 @@ impl ControlGraph {
     /// Each child is represented as `(dest_port_id: usize, child_index: NodeIndex)`
     pub fn get_node_children(&self, node: NodeIndex) -> Vec<(usize, NodeIndex)> {
         self.dag
-            .children(node)
-            .iter(&self.dag)
+            .edges_directed(node, Outgoing)
+            .map(|e| (e.id(), e.target()))
             .map(|(e, n)| (*self.dag.edge_weight(e).unwrap(), n))
             .collect::<Vec<_>>()
     }
@@ -206,7 +213,14 @@ impl ControlGraph {
     /// Connects an existing node (`src`) into another existing node (`dest`).
     /// `dest_port` determines the the port number of `dest` that `src` will connect to.
     pub fn connect_ex_ex_port(&mut self, src: NodeIndex, dest: NodeIndex, dest_port: usize) {
-        self.dag.add_edge(src, dest, dest_port).unwrap();
+        if would_cycle(&self.dag, src, dest, &mut self.dag_cycle_state) {
+            panic!(
+                "Adding edge {src:?} -> {dest:?} would cause a cycle!\n\nGraph:{:?}",
+                self.dag
+            );
+        }
+
+        self.dag.add_edge(src, dest, dest_port);
     }
     /// Connects an existing node (`src`) into another existing node (`dest`).
     /// `dest_port` determines the the port number of `dest` that `src` will connect to.
@@ -376,4 +390,28 @@ impl ControlGraph {
     pub fn connect_const_ex_port(&mut self, src: f64, dest: NodeIndex, dest_port: usize) {
         self.connect_new_ex_port(c(src), dest, dest_port);
     }
+}
+
+fn would_cycle<N, E, Ix: IndexType>(
+    dag: &DiGraph<N, E, Ix>,
+    src: NodeIndex<Ix>,
+    dest: NodeIndex<Ix>,
+    dag_cycle_state: &mut DfsSpace<NodeIndex<Ix>, <DiGraph<N, E, Ix> as Visitable>::Map>,
+) -> bool {
+    should_check_for_cycle(dag, src, dest)
+        && petgraph::algo::has_path_connecting(dag, dest, src, Some(dag_cycle_state))
+}
+
+fn should_check_for_cycle<N, E, Ix: IndexType>(
+    dag: &DiGraph<N, E, Ix>,
+    src: NodeIndex<Ix>,
+    dest: NodeIndex<Ix>,
+) -> bool {
+    if src == dest {
+        return true;
+    }
+
+    dag.neighbors_directed(src, Incoming).next().is_some()
+        && dag.neighbors_directed(dest, Outgoing).next().is_some()
+        && dag.find_edge(src, dest).is_none()
 }

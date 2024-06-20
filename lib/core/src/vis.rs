@@ -1,4 +1,4 @@
-use daggy::NodeIndex;
+use petgraph::graph::NodeIndex;
 
 use crate::control::ControlGraph;
 
