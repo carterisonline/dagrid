@@ -6,14 +6,14 @@ shopt -s expand_aliases
 
 main() {
     pw_match() {
-        pw-cli ls | grep -B 10 "$2" | perl -0 -pe "s/.+$1 = \"(\S+)\".*/\$1/sg"
+        pw-cli ls | grep -B 10 "$3" | perl -0 -pe "s/.+$1(\S+)$2.*/\$1/sg"
     }
 
     pw_id() {
-        pw_match "module\\.id" "$1"
+        pw_match "id " "," "$1"
     }
     pw_port() {
-        pw_match "port\\.id" "$1"
+        pw_match "port\\.id = \"" "\"" "$1"
     }
 
     MIDI_BRIDGE="$(pw_id 'media\.class = "Midi/Bridge"')"
@@ -24,5 +24,5 @@ main() {
     pw-cli cl -m "$MIDI_BRIDGE" "$MIDI_KB" "$DAGRID" "$DAGRID_IN"
 }
 
-cargo build --release -F standalone
+cargo build --release
 target/release/dagrid -p 128 & main && kill $!
