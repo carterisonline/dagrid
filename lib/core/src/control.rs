@@ -112,7 +112,7 @@ impl ControlGraph {
         if self.dag.node_weight(node).unwrap().node.get_ident() == "Constant" {
             self.dag.node_weight_mut(node).unwrap().gen = u64::MAX;
         } else {
-            self.dag.node_weight_mut(node).unwrap().gen += 1;
+            self.dag.node_weight_mut(node).unwrap().gen = self.phase + 1;
         }
 
         let node = &self.dag.node_weight(node).unwrap().node;

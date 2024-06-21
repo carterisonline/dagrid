@@ -11,9 +11,9 @@ Switched from a `DiGraph` to a `StableDiGraph` to avoid invalidating node indice
 
 # Measurements
 
-| Version    | `subsynth_plain` | `subsynth_with_containers` |
-| ---------- | ---------------- | -------------------------- |
-| prerelease | 22ms             | 40ms                       |
-| 0.1.0      | 5.34ms           | 9.22ms                     |
-| 0.1.1      | 4.37ms           | 7.93ms                     |
-| 0.1.2      | 4.75ms           | 8.80ms                     |
+| Version    | `synth/subsynth_plain` | `synth/subsynth_with_containers` |
+| ---------- | ---------------------- | -------------------------------- |
+| prerelease | 22ms                   | 40ms                             |
+| 0.1.0      | 5.34ms                 | 9.22ms                           |
+| 0.1.1      | 4.37ms                 | 7.93ms                           |
+| 0.1.2      | 4.75ms                 | 8.80ms                           |
