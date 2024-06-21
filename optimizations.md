@@ -1,7 +1,19 @@
-| Version | `subsynth_plain` | `subsynth_with_containers` | Description                                                                                                            |
-| ------- | ---------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| 0.1.0   | 22ms             | 40ms                       | Intitial measurements                                                                                                  |
-| 0.1.0   | 21ms             | 38ms                       | Switched to using generational references for cached nodes instead of booleans. Avoids cleanup after propagating graph |
-| 0.1.0   | 5.34ms           | 9.22ms                     | ControlNode no longer uses HashMaps. Now stores audio Node data in the weights of each node on the graph               |
-| 0.1.1   | 4.37ms           | 7.93ms                     | Set generation to `u64::MAX` for const nodes to avoid recalculating                                                    |
-| 0.1.2   | 4.75ms           | 8.80ms                     | Switch to a StableDiGraph                                                                                              |
+# Optimizations
+
+## 0.1.0
+Used to check if a node was already calculated in the graph using a boolean. Changed to a generational reference to avoid having to reset nodes after calling `next_sample`. ControlNode no longer uses HashMaps. Now stores node data in the weights of each node on the graph.
+
+## 0.1.1
+When interpreting `Constant` nodes, set the generation to `u64::MAX`, which prevents constants from being needlessly re-evaluated.
+
+## 0.1.2
+Switched from a `DiGraph` to a `StableDiGraph` to avoid invalidating node indices across removals.
+
+# Measurements
+
+| Version    | `subsynth_plain` | `subsynth_with_containers` |
+| ---------- | ---------------- | -------------------------- |
+| prerelease | 22ms             | 40ms                       |
+| 0.1.0      | 5.34ms           | 9.22ms                     |
+| 0.1.1      | 4.37ms           | 7.93ms                     |
+| 0.1.2      | 4.75ms           | 8.80ms                     |
