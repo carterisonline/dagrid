@@ -1,6 +1,6 @@
-use petgraph::graph::NodeIndex;
+use petgraph::{graph::NodeIndex, Direction::Outgoing};
 
-use crate::control::ControlGraph;
+use crate::control::{ControlGraph, Neighbor};
 
 pub fn visualize_graph(cg: &ControlGraph) -> String {
     let node_indexes = cg.get_node_indexes();
@@ -8,7 +8,11 @@ pub fn visualize_graph(cg: &ControlGraph) -> String {
     let mut src = vec![];
 
     // declare the node labels
-    for (node_num, &node_index) in node_indexes.iter().enumerate() {
+    for (node_num, node_index) in node_indexes.enumerate() {
+        if node_num == 0 {
+            continue;
+        }
+
         let node = cg.get_node(node_index);
         let ident = node.get_ident();
 
@@ -105,11 +109,11 @@ fn subgraph(cg: &ControlGraph, i: usize) -> (SubgraphCalc, String) {
     calc.ignore_in.dedup();
     calc.ignore_out.dedup();
 
-    let node_indexes = cg.get_node_indexes();
-    let container_node_indexes = if i == 0 {
-        cg.get_node_indexes()
+    let node_indexes = cg.get_node_indexes().collect::<Vec<_>>();
+    let container_node_indexes: Vec<NodeIndex> = if i == 0 {
+        cg.get_node_indexes().collect()
     } else {
-        cg.get_container_member_indexes(i - 1)
+        cg.get_container_member_indexes(i - 1).cloned().collect()
     };
 
     // declare the edges
@@ -124,9 +128,14 @@ fn subgraph(cg: &ControlGraph, i: usize) -> (SubgraphCalc, String) {
         let node = cg.get_node(node_index);
 
         let node_ident = node.get_ident();
-        let children = cg.get_node_children(node_index);
+        let children = cg.get_node_neighbors(node_index, Outgoing);
 
-        for (child_edge, child_node_index) in children {
+        for Neighbor {
+            dest_port_id: child_edge,
+            node_index: child_node_index,
+            ..
+        } in children
+        {
             if !(container_node_indexes.contains(&child_node_index)
                 || i == 0 && child_node_index == NodeIndex::new(0))
             {
@@ -147,7 +156,13 @@ fn subgraph(cg: &ControlGraph, i: usize) -> (SubgraphCalc, String) {
                     Some((child_node_id, &child_node_index)) => {
                         let child_node = cg.get_node(child_node_index);
                         let ident = child_node.get_ident();
-                        if node_ident == "ContainerOutput" && ident == "ContainerInput" {
+                        if child_node_id == 0
+                            && (node_ident == "ContainerInput" || node_ident == "ContainerOutput")
+                        {
+                            format!("s{node_num}:e -> aout;")
+                        } else if child_node_id == 0 {
+                            format!("s{node_num}:o -> aout;")
+                        } else if node_ident == "ContainerOutput" && ident == "ContainerInput" {
                             format!("s{node_num}:e -> s{child_node_id}:w;")
                         } else if ident == "ContainerInput" || ident == "ContainerOutput" {
                             format!("s{node_num}:o -> s{child_node_id}:w;")
@@ -159,20 +174,14 @@ fn subgraph(cg: &ControlGraph, i: usize) -> (SubgraphCalc, String) {
                             format!("s{node_num}:o -> s{child_node_id}:i{child_edge};")
                         }
                     }
-                    None => {
-                        if node_ident == "ContainerInput" || node_ident == "ContainerOutput" {
-                            format!("s{node_num}:e -> aout;")
-                        } else {
-                            format!("s{node_num}:o -> aout;")
-                        }
-                    }
+                    None => String::new(),
                 },
             );
         }
     }
 
     // add calculated nodes to calc
-    for &node_index in container_node_indexes {
+    for node_index in container_node_indexes {
         let node = cg.get_node(node_index);
         match node.get_ident() {
             "ContainerInput" => calc.ignore_out.push(node_index),

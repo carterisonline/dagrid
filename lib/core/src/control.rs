@@ -2,13 +2,19 @@ use std::borrow::Cow;
 
 use petgraph::algo::DfsSpace;
 use petgraph::csr::IndexType;
-use petgraph::graph::NodeIndex;
-use petgraph::stable_graph::StableDiGraph;
+use petgraph::graph::{EdgeIndex, NodeIndex};
+use petgraph::stable_graph::{NodeIndices, StableDiGraph};
 use petgraph::visit::{EdgeRef, Visitable};
-use petgraph::{Incoming, Outgoing};
+use petgraph::{Direction, Incoming, Outgoing};
 
 use crate::container::Container;
 use crate::node::*;
+
+pub struct Neighbor {
+    pub node_index: NodeIndex,
+    pub edge_index: EdgeIndex,
+    pub dest_port_id: usize,
+}
 
 #[derive(Debug)]
 pub struct NodeData {
@@ -24,7 +30,6 @@ pub struct ControlGraph {
     pub dag: StableDiGraph<NodeData, usize, u32>,
     dag_cycle_state: DfsSpace<NodeIndex, <StableDiGraph<NodeData, usize, u32> as Visitable>::Map>,
     node_input_arena: Vec<Sample>,
-    node_indexes: Vec<NodeIndex>,
     container_idents: Vec<String>,
     container_stack: Vec<usize>,
     container_members: Vec<Vec<NodeIndex>>,
@@ -47,7 +52,6 @@ impl ControlGraph {
             dag,
             dag_cycle_state: DfsSpace::default(),
             node_input_arena: vec![f64::NAN.into()],
-            node_indexes: vec![],
             container_idents: vec![],
             container_stack: vec![],
             container_members: vec![],
@@ -71,13 +75,27 @@ impl ControlGraph {
             self.node_input_arena.push(f64::NAN.into());
         }
 
-        self.node_indexes.push(node);
-
         for &i in &self.container_stack {
             self.container_members[i].push(node);
         }
 
         node
+    }
+
+    /// Removes a node from the control graph, severing all connections with other nodes.
+    ///
+    /// Returns `Some(NodeData)` if the removal was successful.
+    /// Returns `None` if the node doesn't exist.
+    pub fn remove(&mut self, node: NodeIndex) -> Option<NodeData> {
+        self.dag.remove_node(node)
+    }
+
+    /// Disconnects an edge from the control graph.
+    ///
+    /// Returns `Some(usize)` if the removal was successful.
+    /// Returns `None` if the edge doesn't exist.
+    pub fn disconnect(&mut self, edge: EdgeIndex) -> Option<usize> {
+        self.dag.remove_edge(edge)
     }
 
     /// Traverses the entire control graph beginning at `aout`.
@@ -128,19 +146,22 @@ impl ControlGraph {
         self.sample_rate = sample_rate;
     }
 
-    /// Returns the children of the specified node.
-    /// Each child is represented as `(dest_port_id: usize, child_index: NodeIndex)`
-    pub fn get_node_children(&self, node: NodeIndex) -> Vec<(usize, NodeIndex)> {
+    /// Returns the neighbors of the specified node.
+    pub fn get_node_neighbors(&self, node: NodeIndex, direction: Direction) -> Vec<Neighbor> {
         self.dag
-            .edges_directed(node, Outgoing)
+            .edges_directed(node, direction)
             .map(|e| (e.id(), e.target()))
-            .map(|(e, n)| (*self.dag.edge_weight(e).unwrap(), n))
+            .map(|(e, n)| Neighbor {
+                node_index: n,
+                edge_index: e,
+                dest_port_id: *self.dag.edge_weight(e).unwrap(),
+            })
             .collect::<Vec<_>>()
     }
 
     /// Returns all node indexes contained in the control graph.
-    pub fn get_node_indexes(&self) -> &Vec<NodeIndex> {
-        &self.node_indexes
+    pub fn get_node_indexes(&self) -> NodeIndices<NodeData, u32> {
+        self.dag.node_indices()
     }
 
     pub fn get_node(&self, id: NodeIndex) -> &(dyn Node + Send) {
@@ -161,8 +182,8 @@ impl ControlGraph {
         &self.container_children
     }
 
-    pub fn get_container_member_indexes(&self, i: usize) -> &Vec<NodeIndex> {
-        &self.container_members[i]
+    pub fn get_container_member_indexes(&self, i: usize) -> std::slice::Iter<NodeIndex> {
+        self.container_members[i].iter()
     }
 
     pub fn get_container_ident(&self, i: usize) -> &str {
@@ -207,7 +228,6 @@ impl ControlGraph {
 
 // WARNING: INCREDIBLE POLYFILL BS AHEAD. THIS SUCKS A LOT
 // I tried making a single `connect` function using enums to modify the behavior but it was way worse to use
-#[allow(dead_code)]
 impl ControlGraph {
     /// Connects an existing node (`src`) into another existing node (`dest`).
     /// `src` will always connect to port 0 of `dest`.
