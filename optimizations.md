@@ -4,3 +4,4 @@
 | 0.1.0   | 21ms             | 38ms                       | Switched to using generational references for cached nodes instead of booleans. Avoids cleanup after propagating graph |
 | 0.1.0   | 5.34ms           | 9.22ms                     | ControlNode no longer uses HashMaps. Now stores audio Node data in the weights of each node on the graph               |
 | 0.1.1   | 4.37ms           | 7.93ms                     | Set generation to `u64::MAX` for const nodes to avoid recalculating                                                    |
+| 0.1.2   | 4.75ms           | 8.80ms                     | Switch to a StableDiGraph                                                                                              |

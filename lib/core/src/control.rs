@@ -2,7 +2,8 @@ use std::borrow::Cow;
 
 use petgraph::algo::DfsSpace;
 use petgraph::csr::IndexType;
-use petgraph::graph::{DiGraph, NodeIndex};
+use petgraph::graph::NodeIndex;
+use petgraph::stable_graph::StableDiGraph;
 use petgraph::visit::{EdgeRef, Visitable};
 use petgraph::{Incoming, Outgoing};
 
@@ -20,8 +21,8 @@ struct NodeData {
 pub struct ControlGraph {
     phase: u64,
     sample_rate: u32,
-    dag: DiGraph<NodeData, usize, u32>,
-    dag_cycle_state: DfsSpace<NodeIndex, <DiGraph<NodeData, usize, u32> as Visitable>::Map>,
+    dag: StableDiGraph<NodeData, usize, u32>,
+    dag_cycle_state: DfsSpace<NodeIndex, <StableDiGraph<NodeData, usize, u32> as Visitable>::Map>,
     node_input_arena: Vec<Sample>,
     node_indexes: Vec<NodeIndex>,
     container_idents: Vec<String>,
@@ -34,7 +35,7 @@ pub struct ControlGraph {
 impl ControlGraph {
     /// Returns a new control graph with its `sample_rate` set.
     pub fn new(sample_rate: u32) -> Self {
-        let mut dag = DiGraph::new();
+        let mut dag = StableDiGraph::new();
         let aout_node = dag.add_node(NodeData {
             input_arena_ptr: 0,
             gen: 0,
@@ -397,17 +398,17 @@ impl ControlGraph {
 }
 
 fn would_cycle<N, E, Ix: IndexType>(
-    dag: &DiGraph<N, E, Ix>,
+    dag: &StableDiGraph<N, E, Ix>,
     src: NodeIndex<Ix>,
     dest: NodeIndex<Ix>,
-    dag_cycle_state: &mut DfsSpace<NodeIndex<Ix>, <DiGraph<N, E, Ix> as Visitable>::Map>,
+    dag_cycle_state: &mut DfsSpace<NodeIndex<Ix>, <StableDiGraph<N, E, Ix> as Visitable>::Map>,
 ) -> bool {
     should_check_for_cycle(dag, src, dest)
         && petgraph::algo::has_path_connecting(dag, dest, src, Some(dag_cycle_state))
 }
 
 fn should_check_for_cycle<N, E, Ix: IndexType>(
-    dag: &DiGraph<N, E, Ix>,
+    dag: &StableDiGraph<N, E, Ix>,
     src: NodeIndex<Ix>,
     dest: NodeIndex<Ix>,
 ) -> bool {
