@@ -18,7 +18,6 @@ macro_rules! assert_glicol_ref_eq {
     }};
 }
 
-#[allow(dead_code)]
 pub fn nonmatching_report<const N: usize>(
     synthesized: &[f32],
     reference: &[f32],
@@ -60,7 +59,6 @@ pub fn nonmatching_report<const N: usize>(
     )
 }
 
-#[allow(dead_code)]
 pub fn eq_matches<const N: usize>(
     synthesized: &[f32],
     reference: &[f32],
@@ -75,7 +73,6 @@ pub fn eq_matches<const N: usize>(
     matches
 }
 
-#[allow(dead_code)]
 pub fn cg_samples<const N: usize>(cg: &mut ControlGraph) -> [f32; N] {
     let mut v = [0.0; N];
     for x in v.iter_mut() {
@@ -85,12 +82,6 @@ pub fn cg_samples<const N: usize>(cg: &mut ControlGraph) -> [f32; N] {
     v
 }
 
-#[allow(dead_code)]
-pub fn std_cg() -> ControlGraph {
-    ControlGraph::new(44100)
-}
-
-#[allow(dead_code)]
 pub fn glicol_ref<const N: usize>(src: &str) -> Vec<f32> {
     let mut engine = Engine::<N>::new();
 

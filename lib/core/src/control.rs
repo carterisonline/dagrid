@@ -11,7 +11,7 @@ use crate::container::Container;
 use crate::node::*;
 
 #[derive(Debug)]
-struct NodeData {
+pub struct NodeData {
     input_arena_ptr: usize,
     gen: u64,
     node: Box<dyn Node + Send>,
@@ -21,7 +21,7 @@ struct NodeData {
 pub struct ControlGraph {
     phase: u64,
     sample_rate: u32,
-    dag: StableDiGraph<NodeData, usize, u32>,
+    pub dag: StableDiGraph<NodeData, usize, u32>,
     dag_cycle_state: DfsSpace<NodeIndex, <StableDiGraph<NodeData, usize, u32> as Visitable>::Map>,
     node_input_arena: Vec<Sample>,
     node_indexes: Vec<NodeIndex>,

@@ -3,6 +3,7 @@
 pub mod container;
 pub mod control;
 pub mod node;
+pub mod presets;
 pub mod util;
 pub mod vis;
 

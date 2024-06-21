@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use dagrid_core::presets::{self, preset};
 use nih_plug::prelude::*;
 
 use dagrid_core::control::ControlGraph;
-use dagrid_core::node::*;
 
 use crate::params::DaGridParams;
 
@@ -33,16 +33,7 @@ impl DaGrid {
 
 impl Default for DaGrid {
     fn default() -> Self {
-        let mut cg = ControlGraph::new(0);
-
-        let s1 = cg.connect_const_new(440.0, Sine);
-        let s2 = cg.connect_const_new(220.0, Sine);
-        let mulneg1 = cg.connect_const_new(-1.0, Mul);
-        cg.connect(s2, mulneg1, 1);
-        let add = cg.connect_many_new(&[mulneg1, s1], Add);
-        let mulhalf = cg.connect_const_new(0.5, Mul);
-        cg.connect(add, mulhalf, 1);
-        cg.connect_existing_aout(mulhalf);
+        let cg = preset(0, presets::subsynth_with_containers);
 
         Self {
             params: Arc::new(DaGridParams::default()),
