@@ -30,7 +30,9 @@ Into this graph:
 
 ![graph](media/subsynth_using_containers_graph.png)
 
-And can actually output the audio sample-by-sample - that's why we're here, is it?
+And into this audio (warning - loud):
+
+![audio preview](media/subsynth.mp4)
 
 ## Building
 
