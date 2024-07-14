@@ -6,6 +6,7 @@ use petgraph::graph::{EdgeIndex, NodeIndex};
 use petgraph::stable_graph::{NodeIndices, StableDiGraph};
 use petgraph::visit::{EdgeRef, Visitable};
 use petgraph::{Direction, Incoming, Outgoing};
+use serde::{Deserialize, Serialize};
 
 use crate::container::Container;
 use crate::node::*;
@@ -16,18 +17,21 @@ pub struct Neighbor {
     pub dest_port_id: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NodeData {
     input_arena_ptr: usize,
+    #[serde(skip)]
     gen: u64,
-    node: Box<dyn Node + Send>,
+    node: Box<dyn Node>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ControlGraph {
+    #[serde(skip)]
     phase: u64,
     sample_rate: u32,
     pub dag: StableDiGraph<NodeData, usize, u32>,
+    #[serde(skip)]
     dag_cycle_state: DfsSpace<NodeIndex, <StableDiGraph<NodeData, usize, u32> as Visitable>::Map>,
     node_input_arena: Vec<Sample>,
     container_idents: Vec<String>,
@@ -58,6 +62,21 @@ impl ControlGraph {
             container_children: vec![vec![]],
             aout_node,
         }
+    }
+
+    /// Loads a control graph from the postcard-encoded data.
+    pub fn load(sample_rate: u32, data: &[u8]) -> postcard::Result<Self> {
+        let mut cg: Self = postcard::from_bytes(data)?;
+
+        cg.phase = 0;
+        cg.sample_rate = sample_rate;
+
+        Ok(cg)
+    }
+
+    /// Saves the control graph into postcard-encoded data.
+    pub fn save(&self) -> postcard::Result<Vec<u8>> {
+        postcard::to_stdvec(self)
     }
 
     /// Inserts a node into the control graph.
@@ -164,7 +183,7 @@ impl ControlGraph {
         self.dag.node_indices()
     }
 
-    pub fn get_node(&self, id: NodeIndex) -> &(dyn Node + Send) {
+    pub fn get_node(&self, id: NodeIndex) -> &dyn Node {
         self.dag.node_weight(id).unwrap().node.as_ref()
     }
 

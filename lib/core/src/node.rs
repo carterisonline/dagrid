@@ -1,17 +1,22 @@
 use std::{borrow::Cow, f64::consts, fmt::Debug};
 
+use serde::{Deserialize, Serialize};
+
 use crate::*;
 
-newtype!([cc, dd, o, e] pub Sample = f64);
+newtype!([cc, dd, o, e, Serialize, Deserialize] pub Sample = f64);
 
-pub trait Node: Debug {
+#[typetag::serde(tag = "type")]
+pub trait Node: Debug + Send {
     fn get_ident(&self) -> &str;
     fn get_input_labels(&self) -> &[Cow<'_, str>];
     fn process(&self, inputs: &[Sample], phase: u64, sample_rate: u32) -> Sample;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Empty;
+
+#[typetag::serde]
 impl Node for Empty {
     fn get_ident(&self) -> &str {
         "Empty"
@@ -26,14 +31,16 @@ impl Node for Empty {
     }
 }
 
-#[derive(Debug)]
-pub struct ContainerInput<'a>(pub [Cow<'a, str>; 1]);
-impl<'a> Node for ContainerInput<'a> {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ContainerInput(pub [Cow<'static, str>; 1]);
+
+#[typetag::serde]
+impl Node for ContainerInput {
     fn get_ident(&self) -> &str {
         "ContainerInput"
     }
 
-    fn get_input_labels(&self) -> &[Cow<'a, str>] {
+    fn get_input_labels(&self) -> &[Cow<'static, str>] {
         &self.0
     }
 
@@ -42,14 +49,16 @@ impl<'a> Node for ContainerInput<'a> {
     }
 }
 
-#[derive(Debug)]
-pub struct ContainerOutput<'a>(pub [Cow<'a, str>; 1]);
-impl<'a> Node for ContainerOutput<'a> {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ContainerOutput(pub [Cow<'static, str>; 1]);
+
+#[typetag::serde]
+impl Node for ContainerOutput {
     fn get_ident(&self) -> &str {
         "ContainerOutput"
     }
 
-    fn get_input_labels(&self) -> &[Cow<'a, str>] {
+    fn get_input_labels(&self) -> &[Cow<'static, str>] {
         &self.0
     }
 
@@ -58,8 +67,10 @@ impl<'a> Node for ContainerOutput<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Sine;
+
+#[typetag::serde]
 impl Node for Sine {
     fn get_ident(&self) -> &str {
         "Sine"
@@ -77,8 +88,10 @@ impl Node for Sine {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Add;
+
+#[typetag::serde]
 impl Node for Add {
     fn get_ident(&self) -> &str {
         "Add"
@@ -93,8 +106,10 @@ impl Node for Add {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Mul;
+
+#[typetag::serde]
 impl Node for Mul {
     fn get_ident(&self) -> &str {
         "Multiply"
@@ -109,8 +124,10 @@ impl Node for Mul {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Inv;
+
+#[typetag::serde]
 impl Node for Inv {
     fn get_ident(&self) -> &str {
         "Inverse"
@@ -125,8 +142,10 @@ impl Node for Inv {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Const(pub Sample);
+
+#[typetag::serde]
 impl Node for Const {
     fn get_ident(&self) -> &str {
         "Constant"

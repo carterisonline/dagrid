@@ -4,7 +4,12 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-petgraph = "0.6"
+petgraph = { version = "0.6", features = ["serde", "serde-1", "serde_derive"] }
+postcard = { version = "1.0.8", default-features = false, features = [
+    "use-std",
+] }
+serde = { version = "1.0.204", features = ["derive"] }
+typetag = "0.2.16"
 
 [dev-dependencies]
 glicol = "0.13"

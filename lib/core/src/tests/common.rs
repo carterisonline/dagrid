@@ -5,14 +5,14 @@ use owo_colors::OwoColorize;
 #[macro_export]
 macro_rules! assert_glicol_ref_eq {
     (within epsilon * $ex: literal: &mut $cg: ident * $n: literal == $src: expr) => {{
-        let synthesized = $crate::tests::glicol::cg_samples::<$n>(&mut $cg);
-        let reference = glicol::glicol_ref::<$n>($src);
-        let matches = $crate::tests::glicol::eq_matches::<$n>(&synthesized, &reference, $ex);
+        let synthesized = $crate::tests::common::cg_samples::<$n>(&mut $cg);
+        let reference = $crate::tests::common::glicol_ref::<$n>($src);
+        let matches = $crate::tests::common::eq_matches::<$n>(&synthesized, &reference, $ex);
 
         if !matches.iter().all(|b| *b) {
             panic!(
                 "{}",
-                $crate::tests::glicol::nonmatching_report::<$n>(&synthesized, &reference, &matches)
+                $crate::tests::common::nonmatching_report::<$n>(&synthesized, &reference, &matches)
             );
         }
     }};

@@ -11,7 +11,7 @@ use crate::node::*;
 use crate::presets::preset;
 use crate::{assert_glicol_ref_eq, presets};
 
-mod glicol;
+mod common;
 
 fn record_graph(test_name: &str, cg: &ControlGraph) {
     let graphs_path = PathBuf::from_str("src/tests/graphs").unwrap();
@@ -45,6 +45,23 @@ fn subsynth_with_containers() {
         within epsilon * 26:
         &mut cg * 256 == "~s1: sin 440\n~s2: sin 220\no: ~s2 >> mul -1 >> add ~s1 >> mul 0.5"
     );
+}
+
+#[test]
+fn subsynth_with_containers_save_load() {
+    let mut cg1 = preset(44100, presets::subsynth_with_containers);
+
+    let mut cg2 = ControlGraph::load(44100, &cg1.save().unwrap()).unwrap();
+
+    let s1 = common::cg_samples::<256>(&mut cg1);
+    let s2 = common::cg_samples::<256>(&mut cg2);
+
+    if s1 != s2 {
+        panic!(
+            "{}",
+            common::nonmatching_report::<256>(&s2, &s1, &common::eq_matches::<256>(&s2, &s1, 1))
+        );
+    }
 }
 
 #[test]
