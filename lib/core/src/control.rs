@@ -22,6 +22,8 @@ pub struct NodeData {
     input_arena_ptr: usize,
     #[serde(skip)]
     gen: u64,
+    #[serde(skip)]
+    val: Sample,
     node: Box<dyn Node>,
 }
 
@@ -33,12 +35,17 @@ pub struct ControlGraph {
     pub dag: StableDiGraph<NodeData, usize, u32>,
     #[serde(skip)]
     dag_cycle_state: DfsSpace<NodeIndex, <StableDiGraph<NodeData, usize, u32> as Visitable>::Map>,
-    node_input_arena: Vec<Sample>,
+    node_input_arena: Vec<NodeIndex>,
+    node_input_val_arena: Vec<Sample>,
     container_idents: Vec<String>,
     container_stack: Vec<usize>,
     container_members: Vec<Vec<NodeIndex>>,
     container_children: Vec<Vec<usize>>,
     aout_node: NodeIndex,
+    #[serde(skip)]
+    cache: Vec<(NodeIndex, usize)>,
+    #[serde(skip)]
+    cache_invalid: bool,
 }
 
 impl ControlGraph {
@@ -48,6 +55,7 @@ impl ControlGraph {
         let aout_node = dag.add_node(NodeData {
             input_arena_ptr: 0,
             gen: 0,
+            val: Sample(f64::NAN),
             node: Box::new(Empty),
         });
         Self {
@@ -55,12 +63,15 @@ impl ControlGraph {
             sample_rate,
             dag,
             dag_cycle_state: DfsSpace::default(),
-            node_input_arena: vec![f64::NAN.into()],
+            node_input_arena: vec![0.into()],
+            node_input_val_arena: vec![f64::NAN.into()],
             container_idents: vec![],
             container_stack: vec![],
             container_members: vec![],
             container_children: vec![vec![]],
             aout_node,
+            cache: vec![],
+            cache_invalid: true,
         }
     }
 
@@ -70,6 +81,7 @@ impl ControlGraph {
 
         cg.phase = 0;
         cg.sample_rate = sample_rate;
+        cg.cache_invalid = true;
 
         Ok(cg)
     }
@@ -87,11 +99,13 @@ impl ControlGraph {
         let node = self.dag.add_node(NodeData {
             input_arena_ptr: self.node_input_arena.len(),
             gen: self.phase,
+            val: Sample(f64::NAN),
             node: Box::new(n),
         });
 
         for _ in 0..input_len {
-            self.node_input_arena.push(f64::NAN.into());
+            self.node_input_arena.push(0.into());
+            self.node_input_val_arena.push(f64::NAN.into());
         }
 
         for &i in &self.container_stack {
@@ -129,36 +143,77 @@ impl ControlGraph {
         );
 
         self.phase += 1;
+        self.cache_invalid = false;
 
         sample
     }
 
     fn update_node(&mut self, node: NodeIndex) -> Sample {
-        let mut parents = self.dag.neighbors_directed(node, Incoming).detach();
-        let input_arena_ptr = self.dag.node_weight(node).unwrap().input_arena_ptr;
+        if self.cache_invalid {
+            let mut parents = self.dag.neighbors_directed(node, Incoming).detach();
+            let input_arena_ptr = self.dag.node_weight(node).unwrap().input_arena_ptr;
 
-        while let Some((e, n)) = parents.next(&self.dag) {
-            let parent_node = self.dag.node_weight(n).unwrap();
-            if parent_node.gen <= self.phase {
-                self.node_input_arena[*self.dag.edge_weight(e).unwrap() + input_arena_ptr] =
+            while let Some((e, n)) = parents.next(&self.dag) {
+                let parent_node = self.dag.node_weight(n).unwrap();
+                let edge_id = *self.dag.edge_weight(e).unwrap();
+                if parent_node.gen <= self.phase {
                     self.update_node(n);
+                }
+
+                self.node_input_arena[input_arena_ptr + edge_id] = n;
             }
-        }
 
-        // Set generation to `u64::MAX` for const nodes to avoid recalculating
-        if self.dag.node_weight(node).unwrap().node.get_ident() == "Constant" {
-            self.dag.node_weight_mut(node).unwrap().gen = u64::MAX;
+            // Set generation to `u64::MAX` for const nodes to avoid recalculating
+            if self.dag.node_weight(node).unwrap().node.get_ident() == "Constant" {
+                self.dag.node_weight_mut(node).unwrap().gen = u64::MAX;
+            } else {
+                self.dag.node_weight_mut(node).unwrap().gen = self.phase + 1;
+            }
+
+            self.cache.push((node, input_arena_ptr));
+
+            let inputs = update_node_inputs(
+                &self.dag,
+                node,
+                input_arena_ptr,
+                &mut self.node_input_val_arena,
+                &mut self.node_input_arena,
+            );
+
+            let node = &mut self.dag.node_weight_mut(node).unwrap();
+
+            let val = node.node.process(
+                &self.node_input_val_arena[input_arena_ptr..(input_arena_ptr + inputs)],
+                self.phase,
+                self.sample_rate,
+            );
+
+            node.val = val;
+
+            val
         } else {
-            self.dag.node_weight_mut(node).unwrap().gen = self.phase + 1;
-        }
+            let mut val = Sample(0.0);
+            for (node, input_arena_ptr) in &self.cache {
+                let inputs = update_node_inputs(
+                    &self.dag,
+                    *node,
+                    *input_arena_ptr,
+                    &mut self.node_input_val_arena,
+                    &mut self.node_input_arena,
+                );
 
-        let node = &self.dag.node_weight(node).unwrap().node;
-        node.process(
-            &self.node_input_arena
-                [input_arena_ptr..(input_arena_ptr + node.get_input_labels().len())],
-            self.phase,
-            self.sample_rate,
-        )
+                let node = &mut self.dag.node_weight_mut(*node).unwrap();
+                val = node.node.process(
+                    &self.node_input_val_arena[*input_arena_ptr..(input_arena_ptr + inputs)],
+                    self.phase,
+                    self.sample_rate,
+                );
+
+                node.val = val;
+            }
+
+            val
+        }
     }
 
     pub fn set_sample_rate(&mut self, sample_rate: u32) {
@@ -264,6 +319,7 @@ impl ControlGraph {
             );
         }
 
+        self.cache_invalid = true;
         self.dag.add_edge(src, dest, dest_port);
     }
     /// Connects an existing node (`src`) into another existing node (`dest`).
@@ -436,6 +492,27 @@ impl ControlGraph {
     }
 }
 
+#[inline(always)]
+fn update_node_inputs(
+    dag: &StableDiGraph<NodeData, usize, u32>,
+    node: NodeIndex,
+    input_arena_ptr: usize,
+    input_val_arena: &mut [Sample],
+    input_arena: &mut [NodeIndex],
+) -> usize {
+    let node = &dag.node_weight(node).unwrap().node;
+    let inputs = node.get_input_labels().len();
+
+    for i in 0..inputs {
+        input_val_arena[input_arena_ptr + i] = dag
+            .node_weight(input_arena[input_arena_ptr + i])
+            .unwrap()
+            .val;
+    }
+
+    inputs
+}
+#[inline(always)]
 fn would_cycle<N, E, Ix: IndexType>(
     dag: &StableDiGraph<N, E, Ix>,
     src: NodeIndex<Ix>,
@@ -446,6 +523,7 @@ fn would_cycle<N, E, Ix: IndexType>(
         && petgraph::algo::has_path_connecting(dag, dest, src, Some(dag_cycle_state))
 }
 
+#[inline(always)]
 fn should_check_for_cycle<N, E, Ix: IndexType>(
     dag: &StableDiGraph<N, E, Ix>,
     src: NodeIndex<Ix>,

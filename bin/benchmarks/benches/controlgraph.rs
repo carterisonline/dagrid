@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
 
 use dagrid_core::control::ControlGraph;
@@ -7,8 +5,6 @@ use dagrid_core::presets::{self, preset};
 
 fn construct(c: &mut Criterion) {
     let mut g = c.benchmark_group("construct");
-    g.warm_up_time(Duration::from_millis(500));
-    g.measurement_time(Duration::from_millis(500));
 
     g.bench_function("subsynth_plain", |b| {
         b.iter(|| preset(48000, presets::subsynth_plain))
@@ -23,9 +19,6 @@ fn construct(c: &mut Criterion) {
 
 fn synth(c: &mut Criterion) {
     let mut g = c.benchmark_group("synth");
-    g.warm_up_time(Duration::from_secs(2));
-    g.measurement_time(Duration::from_secs(3));
-    g.sample_size(300);
 
     g.bench_function("subsynth_plain", |b| {
         fn subsynth_plain_x(cg: &mut ControlGraph) {

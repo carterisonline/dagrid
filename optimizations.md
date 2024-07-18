@@ -1,15 +1,6 @@
 # Optimizations
 
-## 0.1.0
-Used to check if a node was already calculated in the graph using a boolean. Changed to a generational reference to avoid having to reset nodes after calling `next_sample`. ControlNode no longer uses HashMaps. Now stores node data in the weights of each node on the graph.
-
-## 0.1.1
-When interpreting `Constant` nodes, set the generation to `u64::MAX`, which prevents constants from being needlessly re-evaluated.
-
-## 0.1.2
-Switched from a `DiGraph` to a `StableDiGraph` to avoid invalidating node indices across removals.
-
-# Measurements
+## Measurements
 
 | Version    | `synth/subsynth_plain` | `synth/subsynth_with_containers` |
 | ---------- | ---------------------- | -------------------------------- |
@@ -17,3 +8,19 @@ Switched from a `DiGraph` to a `StableDiGraph` to avoid invalidating node indice
 | 0.1.0      | 5.34ms                 | 9.22ms                           |
 | 0.1.1      | 4.37ms                 | 7.93ms                           |
 | 0.1.2      | 4.75ms                 | 8.80ms                           |
+| 0.2.1      | 3.73ms                 | 5.76ms                           |
+
+## Changelogs
+
+### 0.1.0
+Used to check if a node was already calculated in the graph using a boolean. Changed to a generational reference to avoid having to reset nodes after calling `next_sample`. ControlNode no longer uses HashMaps. Now stores node data in the weights of each node on the graph.
+
+### 0.1.1
+When interpreting `Constant` nodes, set the generation to `u64::MAX`, which prevents constants from being needlessly re-evaluated.
+
+### 0.1.2
+Switched from a `DiGraph` to a `StableDiGraph` to avoid invalidating node indices across removals.
+
+### 0.2.1
+Stores the order that nodes should be processed in a cache instead of manually traversing the graph every time.
+

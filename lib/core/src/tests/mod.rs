@@ -36,6 +36,19 @@ fn subsynth_plain() {
 }
 
 #[test]
+fn subsynth_plain_multiout() {
+    let mut cg = preset(44100, presets::subsynth_plain_multiout);
+
+    record_graph("subsynth_plain_multiout", &cg);
+
+    assert_glicol_ref_eq!(
+        // feeding a sin into another sin is weird, so dg deviates a bit. still matches the curve
+        within epsilon * 140_000:
+        &mut cg * 256 == "~s1: sin 220\n~s2: sin 220\n~s3: sin ~s2\no: ~s3 >> add ~s1 >> mul 0.5"
+    );
+}
+
+#[test]
 fn subsynth_with_containers() {
     let mut cg = preset(44100, presets::subsynth_with_containers);
 

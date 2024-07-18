@@ -47,3 +47,23 @@ pub fn subsynth_with_containers(cg: &mut ControlGraph) {
     // Connect product to audio output
     cg.connect_existing_aout(div_out[0]);
 }
+
+pub fn subsynth_plain_multiout(cg: &mut ControlGraph) {
+    // Create a 220.0 const to plug in to both oscillators
+    let c_220 = cg.insert(c(220.0));
+
+    let sine_osc_1 = cg.connect_ex_new(c_220, Sine);
+    let sine_osc_2 = cg.connect_ex_new(c_220, Sine);
+    let sine_osc_3 = cg.connect_ex_new(sine_osc_2, Sine);
+
+    // Add oscillator 1 to oscillator 2
+    let add = cg.connect_many_new(&[sine_osc_1, sine_osc_3], Add);
+
+    // Audio out must be in range (-1 < x < 1)
+    // divide by 2 to avoid exceeding that
+    let mulhalf = cg.connect_const_new(0.5, Mul);
+    cg.connect(add, mulhalf, 1);
+
+    // Connect product to audio output
+    cg.connect_existing_aout(mulhalf);
+}
