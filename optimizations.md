@@ -10,6 +10,7 @@
 | 0.1.2      | 4.75ms                 | 8.80ms                           |
 | 0.2.1      | 3.73ms                 | 5.76ms                           |
 | 0.3.0      | 6.01ms                 | 8.73ms                           |
+| 0.3.1      | 4.24ms                 | 6.59ms                           |
 
 ## Changelogs
 
@@ -27,3 +28,6 @@ Stores the order that nodes should be processed in a cache instead of manually t
 
 ### 0.3.0
 Upgraded to stereo samples (previously mono). Benchmarks demonstrate that "plain" processes have very little overhead. Containers still need optimizing. Using an enum with Mono and Stereo variants in an attempt to avoid calculating mono signals twice was much slower, since we would be branching at very high rates when performing match statements.
+
+### 0.3.1
+Avoided reevaluating constants (again). Now that we're caching node traversal, we remove the previous method which did this, because graph traversal only triggers when the graph is modified, so constants should be re-evaluated in case they have been changed. The simple fix was to skip adding Constant nodes to the cache.

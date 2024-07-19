@@ -164,14 +164,11 @@ impl ControlGraph {
                 self.node_input_arena[input_arena_ptr + edge_id] = n;
             }
 
-            // Set generation to `u64::MAX` for const nodes to avoid recalculating
-            if self.dag.node_weight(node).unwrap().node.get_ident() == "Constant" {
-                self.dag.node_weight_mut(node).unwrap().gen = u64::MAX;
-            } else {
-                self.dag.node_weight_mut(node).unwrap().gen = self.phase + 1;
-            }
+            let ident = self.dag.node_weight_mut(node).unwrap().node.get_ident();
 
-            self.cache.push((node, input_arena_ptr));
+            if ident != "Constant" {
+                self.cache.push((node, input_arena_ptr));
+            }
 
             let inputs = update_node_inputs(
                 &self.dag,
