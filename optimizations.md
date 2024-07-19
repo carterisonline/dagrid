@@ -11,6 +11,7 @@
 | 0.2.1      | 3.73ms                 | 5.76ms                           |
 | 0.3.0      | 6.01ms                 | 8.73ms                           |
 | 0.3.1      | 4.24ms                 | 6.59ms                           |
+| 0.3.3      | 4.29ms                 | 4.51ms                           |
 
 ## Changelogs
 
@@ -31,3 +32,6 @@ Upgraded to stereo samples (previously mono). Benchmarks demonstrate that "plain
 
 ### 0.3.1
 Avoided reevaluating constants (again). Now that we're caching node traversal, we remove the previous method which did this, because graph traversal only triggers when the graph is modified, so constants should be re-evaluated in case they have been changed. The simple fix was to skip adding Constant nodes to the cache.
+
+### 0.3.3
+Avoids evaluating container input/output nodes after caching.

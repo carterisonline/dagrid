@@ -25,7 +25,7 @@ pub fn subsynth_plain(cg: &mut ControlGraph) {
     cg.connect(add, mulhalf, 1);
 
     // Connect product to audio output
-    cg.connect_existing_aout(mulhalf);
+    cg.connect_ex_aout(mulhalf);
 }
 
 pub fn subsynth_with_containers(cg: &mut ControlGraph) {
@@ -45,7 +45,7 @@ pub fn subsynth_with_containers(cg: &mut ControlGraph) {
     cg.connect_const_ex(2.0, div_in[1]);
 
     // Connect product to audio output
-    cg.connect_existing_aout(div_out[0]);
+    cg.connect_ex_aout(div_out[0]);
 }
 
 pub fn subsynth_plain_multiout(cg: &mut ControlGraph) {
@@ -65,5 +65,5 @@ pub fn subsynth_plain_multiout(cg: &mut ControlGraph) {
     cg.connect(add, mulhalf, 1);
 
     // Connect product to audio output
-    cg.connect_existing_aout(mulhalf);
+    cg.connect_ex_aout(mulhalf);
 }

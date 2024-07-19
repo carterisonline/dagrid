@@ -121,6 +121,7 @@ impl ControlGraph {
     /// Returns `Some(NodeData)` if the removal was successful.
     /// Returns `None` if the node doesn't exist.
     pub fn remove(&mut self, node: NodeIndex) -> Option<NodeData> {
+        self.cache_invalid = true;
         self.dag.remove_node(node)
     }
 
@@ -129,6 +130,7 @@ impl ControlGraph {
     /// Returns `Some(usize)` if the removal was successful.
     /// Returns `None` if the edge doesn't exist.
     pub fn disconnect(&mut self, edge: EdgeIndex) -> Option<usize> {
+        self.cache_invalid = true;
         self.dag.remove_edge(edge)
     }
 
@@ -136,12 +138,14 @@ impl ControlGraph {
     ///
     /// Returns the next sample.
     pub fn next_sample(&mut self) -> Sample {
-        let sample = self.update_node(
-            self.dag
-                .neighbors_directed(self.aout_node, Incoming)
-                .next()
-                .unwrap(),
-        );
+        let sample = self
+            .update_node(
+                self.dag
+                    .neighbors_directed(self.aout_node, Incoming)
+                    .next()
+                    .unwrap(),
+            )
+            .0;
 
         self.phase += 1;
         self.cache_invalid = false;
@@ -149,26 +153,40 @@ impl ControlGraph {
         sample
     }
 
-    fn update_node(&mut self, node: NodeIndex) -> Sample {
+    fn update_node(&mut self, node: NodeIndex) -> (Sample, Option<NodeIndex>) {
         if self.cache_invalid {
             let mut parents = self.dag.neighbors_directed(node, Incoming).detach();
             let input_arena_ptr = self.dag.node_weight(node).unwrap().input_arena_ptr;
 
+            let mut set_parent = None;
             while let Some((e, n)) = parents.next(&self.dag) {
                 let parent_node = self.dag.node_weight(n).unwrap();
                 let edge_id = *self.dag.edge_weight(e).unwrap();
                 if parent_node.gen <= self.phase {
-                    self.update_node(n);
+                    (_, set_parent) = self.update_node(n);
+                    self.node_input_arena[input_arena_ptr + edge_id] = set_parent.unwrap_or(n);
                 }
-
-                self.node_input_arena[input_arena_ptr + edge_id] = n;
             }
 
             let ident = self.dag.node_weight_mut(node).unwrap().node.get_ident();
 
-            if ident != "Constant" {
+            if ident != "Constant" && ident != "ContainerInput" && ident != "ContainerOutput" {
                 self.cache.push((node, input_arena_ptr));
             }
+
+            let set_parent_out = if ident == "ContainerInput" || ident == "ContainerOutput" {
+                let real_parent = self
+                    .dag
+                    .neighbors_directed(node, Direction::Incoming)
+                    .next()
+                    .unwrap_or(node);
+
+                let out = set_parent.unwrap_or(real_parent);
+
+                Some(out)
+            } else {
+                None
+            };
 
             let inputs = update_node_inputs(
                 &self.dag,
@@ -188,7 +206,7 @@ impl ControlGraph {
 
             node.val = val;
 
-            val
+            (val, set_parent_out)
         } else {
             let mut val = Sample::default();
             for (node, input_arena_ptr) in &self.cache {
@@ -210,8 +228,17 @@ impl ControlGraph {
                 node.val = val;
             }
 
-            val
+            (val, None)
         }
+    }
+
+    pub fn set_phase(&mut self, phase: u64) {
+        self.phase = phase;
+        self.dag.node_weights_mut().for_each(|w| w.gen = 0);
+    }
+
+    pub fn reset_phase(&mut self) {
+        self.set_phase(0);
     }
 
     pub fn set_sample_rate(&mut self, sample_rate: u32) {
@@ -322,13 +349,13 @@ impl ControlGraph {
     }
     /// Connects an existing node (`src`) into another existing node (`dest`).
     /// `dest_port` determines the the port number of `dest` that `src` will connect to.
-    /// Alias to [ControlGraph::connect_existing_existing_port].
+    /// Alias to [ControlGraph::connect_ex_ex_port].
     pub fn connect(&mut self, src: NodeIndex, dest: NodeIndex, dest_port: usize) {
         self.connect_ex_ex_port(src, dest, dest_port)
     }
 
     /// Connects a node to `aout`, which represents the final node in the graph.
-    pub fn connect_existing_aout(&mut self, a: NodeIndex) {
+    pub fn connect_ex_aout(&mut self, a: NodeIndex) {
         self.connect_ex_ex_port(a, self.aout_node, 0);
     }
 

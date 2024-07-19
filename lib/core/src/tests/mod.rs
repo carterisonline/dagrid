@@ -1,5 +1,6 @@
 #![allow(unused_imports)]
 
+use std::borrow::Cow;
 use std::str::FromStr;
 use std::{fs::File, io::Write, path::PathBuf};
 
@@ -56,7 +57,7 @@ fn subsynth_with_containers() {
 
     assert_glicol_ref_eq!(
         within epsilon * 26:
-        &mut cg * 256 == "~s1: sin 440\n~s2: sin 220\no: ~s2 >> mul -1 >> add ~s1 >> mul 0.5"
+        &mut cg * 2 == "~s1: sin 440\n~s2: sin 220\no: ~s2 >> mul -1 >> add ~s1 >> mul 0.5"
     );
 }
 
@@ -96,8 +97,8 @@ fn subsynth_plain_patch() {
 fn subsynth_plain_disconnect() {
     let mut cg = preset(44100, presets::subsynth_plain);
 
-    cg.connect_const_ex(110.0, NodeIndex::new(4));
     cg.disconnect(EdgeIndex::new(1));
+    cg.connect_const_ex(110.0, NodeIndex::new(4));
 
     record_graph("subsynth_plain_disconnect", &cg);
 
@@ -107,4 +108,45 @@ fn subsynth_plain_disconnect() {
         within epsilon * 70:
         &mut cg * 256 == "~s1: sin 440\n~s2: sin 110\no: ~s2 >> mul -1 >> add ~s1 >> mul 0.5"
     );
+}
+
+#[test]
+fn subsynth_with_containers_disconnect() {
+    let mut cg = preset(44100, presets::subsynth_with_containers);
+
+    assert_glicol_ref_eq!(
+        within epsilon * 26:
+        &mut cg * 256 == "~s1: sin 440\n~s2: sin 220\no: ~s2 >> mul -1 >> add ~s1 >> mul 0.5"
+    );
+
+    cg.disconnect(EdgeIndex::new(14));
+    cg.connect_const_ex(4.0, NodeIndex::new(12));
+    cg.reset_phase();
+
+    record_graph("subsynth_with_containers_disconnect", &cg);
+
+    assert_glicol_ref_eq!(
+        within epsilon * 26:
+        &mut cg * 256 == "~s1: sin 440\n~s2: sin 220\no: ~s2 >> mul -1 >> add ~s1 >> mul 0.25"
+    );
+}
+
+#[test]
+fn disconnect() {
+    let mut cg = preset(44100, |cg| {
+        let c = cg.connect_const_new(1.0, ContainerOutput([Cow::Borrowed("disconnect")]));
+        cg.connect_ex_aout(c);
+    });
+
+    record_graph("disconnect_before", &cg);
+
+    assert_eq!(cg.next_sample().l(), 1.0);
+
+    cg.disconnect(EdgeIndex::new(0));
+    let c = cg.insert(c(2.0));
+    cg.connect_ex_ex(c, NodeIndex::new(2));
+
+    record_graph("disconnect_after", &cg);
+
+    assert_eq!(cg.next_sample().l(), 2.0);
 }
