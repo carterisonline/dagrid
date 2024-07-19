@@ -23,11 +23,15 @@ pub fn visualize_graph(cg: &ControlGraph) -> String {
                 _ => "<o>",
             },
             match ident {
-                "Constant" => format!("{node:?}")
-                    .trim_start_matches("Const(Sample(")
-                    .trim_end_matches("))")
-                    .trim_end_matches(".0")
-                    .to_string(),
+                "Constant" => {
+                    let trimmed = format!("{node:?}")
+                        .trim_start_matches("Const(Sample { l: ")
+                        .to_string();
+
+                    let end = trimmed.find(',').unwrap();
+
+                    trimmed[..end].to_string()
+                }
                 "ContainerInput" | "ContainerOutput" =>
                     node.get_input_labels()[0].clone().into_owned(),
                 _ => ident.into(),
