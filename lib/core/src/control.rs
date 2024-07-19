@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::container::Container;
 use crate::node::*;
+use crate::Sample;
 
 pub struct Neighbor {
     pub node_index: NodeIndex,
@@ -55,7 +56,7 @@ impl ControlGraph {
         let aout_node = dag.add_node(NodeData {
             input_arena_ptr: 0,
             gen: 0,
-            val: Sample(f64::NAN),
+            val: Sample::default(),
             node: Box::new(Empty),
         });
         Self {
@@ -99,7 +100,7 @@ impl ControlGraph {
         let node = self.dag.add_node(NodeData {
             input_arena_ptr: self.node_input_arena.len(),
             gen: self.phase,
-            val: Sample(f64::NAN),
+            val: Sample::default(),
             node: Box::new(n),
         });
 
@@ -192,7 +193,7 @@ impl ControlGraph {
 
             val
         } else {
-            let mut val = Sample(0.0);
+            let mut val = Sample::default();
             for (node, input_arena_ptr) in &self.cache {
                 let inputs = update_node_inputs(
                     &self.dag,

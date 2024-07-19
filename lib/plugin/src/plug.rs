@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use dagrid_core::presets::{self, preset};
+use dagrid_core::{
+    presets::{self, preset},
+    Sample,
+};
 use nih_plug::prelude::*;
 
 use dagrid_core::control::ControlGraph;
@@ -26,8 +29,8 @@ pub struct DaGrid {
 }
 
 impl DaGrid {
-    fn eval_control_graph(&mut self, _frequency: f32) -> f32 {
-        self.control_graph.next_sample().0 as f32
+    fn eval_control_graph(&mut self, _frequency: f32) -> Sample {
+        self.control_graph.next_sample()
     }
 }
 
@@ -62,11 +65,11 @@ impl Plugin for DaGrid {
             main_output_channels: NonZeroU32::new(2),
             ..AudioIOLayout::const_default()
         },
-        AudioIOLayout {
-            main_input_channels: None,
-            main_output_channels: NonZeroU32::new(1),
-            ..AudioIOLayout::const_default()
-        },
+        // AudioIOLayout {
+        //     main_input_channels: None,
+        //     main_output_channels: NonZeroU32::new(1),
+        //     ..AudioIOLayout::const_default()
+        // },
     ];
 
     const MIDI_INPUT: MidiConfig = MidiConfig::Basic;
@@ -109,7 +112,7 @@ impl Plugin for DaGrid {
             let gain = self.params.gain.smoothed.next();
 
             // This plugin can be either triggered by MIDI or controleld by a parameter
-            let sine = if self.params.use_midi.value() {
+            let out = if self.params.use_midi.value() {
                 // Act on the next MIDI event
                 while let Some(event) = next_event {
                     if event.timing() > sample_id as u32 {
@@ -137,14 +140,15 @@ impl Plugin for DaGrid {
                 }
 
                 // This gain envelope prevents clicks with new notes and with released notes
-                self.eval_control_graph(self.midi_note_freq) * self.midi_note_gain.next()
+                self.eval_control_graph(self.midi_note_freq) * self.midi_note_gain.next() as f64
             } else {
                 let frequency = self.params.frequency.smoothed.next();
                 self.eval_control_graph(frequency)
             };
 
-            for sample in channel_samples {
-                *sample = sine * util::db_to_gain_fast(gain);
+            for (i, sample) in channel_samples.into_iter().enumerate() {
+                *sample = (if i == 0 { out.l() } else { out.r() }
+                    * util::db_to_gain_fast(gain) as f64) as f32
             }
         }
 

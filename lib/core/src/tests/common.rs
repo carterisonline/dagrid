@@ -76,7 +76,7 @@ pub fn eq_matches<const N: usize>(
 pub fn cg_samples<const N: usize>(cg: &mut ControlGraph) -> [f32; N] {
     let mut v = [0.0; N];
     for x in v.iter_mut() {
-        *x = *(cg.next_sample()) as f32;
+        *x = cg.next_sample().l() as f32;
     }
 
     v

@@ -9,6 +9,7 @@
 | 0.1.1      | 4.37ms                 | 7.93ms                           |
 | 0.1.2      | 4.75ms                 | 8.80ms                           |
 | 0.2.1      | 3.73ms                 | 5.76ms                           |
+| 0.3.0      | 6.01ms                 | 8.73ms                           |
 
 ## Changelogs
 
@@ -24,3 +25,5 @@ Switched from a `DiGraph` to a `StableDiGraph` to avoid invalidating node indice
 ### 0.2.1
 Stores the order that nodes should be processed in a cache instead of manually traversing the graph every time.
 
+### 0.3.0
+Upgraded to stereo samples (previously mono). Benchmarks demonstrate that "plain" processes have very little overhead. Containers still need optimizing. Using an enum with Mono and Stereo variants in an attempt to avoid calculating mono signals twice was much slower, since we would be branching at very high rates when performing match statements.

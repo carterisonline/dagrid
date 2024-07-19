@@ -1,10 +1,7 @@
 use std::{borrow::Cow, f64::consts, fmt::Debug};
 
+use crate::Sample;
 use serde::{Deserialize, Serialize};
-
-use crate::*;
-
-newtype!([cc, dd, o, e, Serialize, Deserialize] pub Sample = f64);
 
 #[typetag::serde(tag = "type")]
 pub trait Node: Debug + Send {
@@ -81,10 +78,9 @@ impl Node for Sine {
     }
 
     fn process(&self, inputs: &[Sample], phase: u64, sample_rate: u32) -> Sample {
-        let phase_delta = *inputs[0] / (sample_rate as f64);
-        let sine = ((phase as f64) * phase_delta * consts::TAU).sin();
+        let phase_delta = inputs[0] / (sample_rate as f64);
 
-        Sample(sine)
+        ((phase as f64) * phase_delta * consts::TAU).sin()
     }
 }
 
@@ -102,7 +98,7 @@ impl Node for Add {
     }
 
     fn process(&self, inputs: &[Sample], _phase: u64, _sample_rate: u32) -> Sample {
-        Sample(*inputs[0] + *inputs[1])
+        inputs[0] + inputs[1]
     }
 }
 
@@ -120,7 +116,7 @@ impl Node for Mul {
     }
 
     fn process(&self, inputs: &[Sample], _phase: u64, _sample_rate: u32) -> Sample {
-        Sample(*inputs[0] * *inputs[1])
+        inputs[0] * inputs[1]
     }
 }
 
@@ -138,7 +134,7 @@ impl Node for Inv {
     }
 
     fn process(&self, inputs: &[Sample], _phase: u64, _sample_rate: u32) -> Sample {
-        Sample(1.0 / *inputs[0])
+        inputs[0].recip()
     }
 }
 
