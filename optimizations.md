@@ -12,6 +12,7 @@
 | 0.3.0      | 6.01ms                 | 8.73ms                           |
 | 0.3.1      | 4.24ms                 | 6.59ms                           |
 | 0.3.3      | 4.29ms                 | 4.51ms                           |
+| 0.3.4      | 3.66ms                 | 3.64ms                           |
 
 ## Changelogs
 
@@ -35,3 +36,6 @@ Avoided reevaluating constants (again). Now that we're caching node traversal, w
 
 ### 0.3.3
 Avoids evaluating container input/output nodes after caching.
+
+### 0.3.4
+Switched to SIMD samples. Both left and right channels are combined into a single f64x2.

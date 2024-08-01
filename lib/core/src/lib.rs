@@ -1,4 +1,5 @@
 #![feature(macro_metavar_expr)]
+#![feature(portable_simd)]
 
 pub mod container;
 pub mod control;
