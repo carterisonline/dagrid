@@ -141,13 +141,7 @@
 
           my-workspace-fmt = craneLib.cargoFmt { inherit src; };
 
-          my-workspace-toml-fmt = craneLib.taploFmt {
-            src = pkgs.lib.sources.sourceFilesBySuffices src [ ".toml" ];
-          };
-
           my-workspace-audit = craneLib.cargoAudit { inherit src advisory-db; };
-
-          my-workspace-deny = craneLib.cargoDeny { inherit src; };
 
           my-workspace-nextest = craneLib.cargoNextest (
             commonArgs
@@ -157,22 +151,6 @@
               partitionType = "count";
             }
           );
-
-          # Ensure that cargo-hakari is up to date
-          my-workspace-hakari = craneLib.mkCargoDerivation {
-            inherit src;
-            pname = "my-workspace-hakari";
-            cargoArtifacts = null;
-            doInstallCargoArtifacts = false;
-
-            buildPhaseCargoCommand = ''
-              cargo hakari generate --diff  # workspace-hack Cargo.toml is up-to-date
-              cargo hakari manage-deps --dry-run  # all workspace crates depend on workspace-hack
-              cargo hakari verify
-            '';
-
-            nativeBuildInputs = [ pkgs.cargo-hakari ];
-          };
         };
 
         packages =
@@ -190,15 +168,9 @@
         };
 
         devShells.default = craneLib.devShell {
-          # Inherit inputs from checks.
           checks = self.checks.${system};
 
-          # Additional dev-shell environment variables can be set directly
-          # MY_CUSTOM_DEVELOPMENT_VAR = "something else";
-
-          # Extra inputs can be added here; cargo and rustc are provided by default.
           packages = with pkgs; [
-            cargo-hakari
             rust-analyzer
           ];
         };
