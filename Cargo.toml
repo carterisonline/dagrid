@@ -13,6 +13,9 @@ nih_plug = { git = "https://github.com/robbert-vdh/nih-plug", version = "0.0.0",
 ] }
 dagrid-plugin = { path = "lib/plugin" }
 
+[patch."https://github.com/RustAudio/baseview.git"]
+baseview = { git = "https://github.com/carterisonline/baseview.git", rev = "579130ecb4f9f315ae52190af42f0ea46aeaa4a2" }
+
 [profile.bench]
 inherits = "release"
 debug = 2
