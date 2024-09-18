@@ -3,3 +3,4 @@
 lib/core/src/tests/graphs/
 **/perf.dat*
 **/flamegraph.svg
+**/result
