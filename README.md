@@ -36,6 +36,8 @@ And into this audio (warning - loud):
 
 ## Building
 
+With [Nix](https://nixos.org/) installed, all the hard work is reliably done for you. Run `nix build .#dagrid-plugin` to build and output `dagrid.clap` to the `result` directory. `nix flake check` runs checks and tests. `nix develop [--run <editor>]` puts you into a development shell. Other build commands are listed below:
+
 | Command              | Action                                           |
 | -------------------- | ------------------------------------------------ |
 | `cargo dgbundle`     | Compiles and bundles `dagrid-plugin-export.clap` |
