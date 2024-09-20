@@ -1,3 +1,4 @@
+mod gui;
 mod params;
 mod plug;
 

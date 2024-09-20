@@ -3,6 +3,8 @@ name = "dagrid-benchmarks"
 version = "0.0.0"
 edition = "2021"
 publish = false
+authors.workspace = true
+license.workspace = true
 
 [dev-dependencies]
 criterion = "0.5.1"

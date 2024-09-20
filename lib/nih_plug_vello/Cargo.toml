@@ -1,0 +1,9 @@
+[package]
+name = "nih_plug_vello"
+version = "0.1.0"
+edition = "2021"
+authors.workspace = true
+
+[dependencies]
+vello-baseview = { path = "../vello-baseview" }
+nih_plug = { git = "https://github.com/robbert-vdh/nih-plug", version = "0.0.0" }

@@ -267,6 +267,10 @@ impl ControlGraph {
         self.dag.node_weight(id).unwrap().node.as_ref()
     }
 
+    pub fn get_node_val(&self, id: NodeIndex) -> Sample {
+        self.dag.node_weight(id).unwrap().val
+    }
+
     fn push_container_layer(&mut self) {
         self.container_members.push(vec![]);
         self.container_children.push(vec![]);

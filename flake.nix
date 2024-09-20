@@ -184,7 +184,19 @@
             pipewire.jack
           ];
 
-          LD_LIBRARY_PATH = "$LD_LIBRARY_PATH:${with pkgs; pkgs.lib.makeLibraryPath [ libjack2 ]}";
+          LD_LIBRARY_PATH = "$LD_LIBRARY_PATH:${
+            with pkgs;
+            pkgs.lib.makeLibraryPath [
+              xorg.libX11
+              xorg.libXcursor
+              xorg.libXi
+              libxkbcommon
+              xorg.libxcb
+              pkgs.vulkan-loader
+              pkgs.glfw
+              libjack2
+            ]
+          }";
         };
       }
     );

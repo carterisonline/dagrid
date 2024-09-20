@@ -4,7 +4,7 @@ use crate::Sample;
 use serde::{Deserialize, Serialize};
 
 #[typetag::serde(tag = "type")]
-pub trait Node: Debug + Send {
+pub trait Node: Debug + Send + Sync {
     fn get_ident(&self) -> &str;
     fn get_input_labels(&self) -> &[Cow<'_, str>];
     fn process(&self, inputs: &[Sample], phase: u64, sample_rate: u32) -> Sample;

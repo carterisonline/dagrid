@@ -1,20 +1,20 @@
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use dagrid_core::{
     presets::{self, preset},
     Sample,
 };
 use nih_plug::prelude::*;
+use nih_plug_vello::create_vello_editor;
 
+use crate::{gui::Ctx, params::DaGridParams};
 use dagrid_core::control::ControlGraph;
-
-use crate::params::DaGridParams;
 
 pub struct DaGrid {
     params: Arc<DaGridParams>,
     sample_rate: f32,
 
-    control_graph: ControlGraph,
+    control_graph: Arc<RwLock<ControlGraph>>,
 
     /// The MIDI note ID of the active note, if triggered by MIDI.
     midi_note_id: u8,
@@ -30,7 +30,7 @@ pub struct DaGrid {
 
 impl DaGrid {
     fn eval_control_graph(&mut self, _frequency: f32) -> Sample {
-        self.control_graph.next_sample()
+        self.control_graph.write().unwrap().next_sample()
     }
 }
 
@@ -41,7 +41,7 @@ impl Default for DaGrid {
         Self {
             params: Arc::new(DaGridParams::default()),
             sample_rate: 1.0,
-            control_graph: cg,
+            control_graph: Arc::new(RwLock::new(cg)),
 
             midi_note_id: 0,
             midi_note_freq: 1.0,
@@ -78,6 +78,14 @@ impl Plugin for DaGrid {
     type SysExMessage = ();
     type BackgroundTask = ();
 
+    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
+        create_vello_editor(
+            nih_plug_vello::Size::new(512.0, 512.0),
+            Ctx::new(self.control_graph.clone()),
+            &crate::gui::draw,
+        )
+    }
+
     fn params(&self) -> Arc<dyn Params> {
         self.params.clone()
     }
@@ -89,6 +97,8 @@ impl Plugin for DaGrid {
         _context: &mut impl InitContext<Self>,
     ) -> bool {
         self.control_graph
+            .write()
+            .unwrap()
             .set_sample_rate(buffer_config.sample_rate as u32);
 
         true

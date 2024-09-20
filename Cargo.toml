@@ -1,10 +1,16 @@
 [workspace]
 members = ["bin/*", "lib/*"]
 
+[workspace.package]
+authors = ["Carter Reeb <me@carteris.online>"]
+license = "ISC"
+
 [package]
 name = "dagrid"
 version = "0.1.0"
 edition = "2021"
+authors.workspace = true
+license.workspace = true
 
 [dependencies]
 nih_plug = { git = "https://github.com/robbert-vdh/nih-plug", version = "0.0.0", features = [

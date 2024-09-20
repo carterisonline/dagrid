@@ -2,9 +2,12 @@
 name = "dagrid-plugin"
 version = "0.2.0"
 edition = "2021"
+authors.workspace = true
+license.workspace = true
 
 [dependencies]
 nih_plug = { git = "https://github.com/robbert-vdh/nih-plug", version = "0.0.0", features = [
     "simd",
 ] }
 dagrid-core = { path = "../core" }
+nih_plug_vello = { path = "../nih_plug_vello" }
