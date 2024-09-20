@@ -107,29 +107,38 @@
             ];
           };
 
-        dagrid-plugin = craneLib.mkCargoDerivation (
+        dagrid-plugin = craneLib.buildPackage (
           individualCrateArgs
           // {
-            src = fileSetForCrate ./.;
             inherit cargoArtifacts;
+
             pname = "dagrid-plugin";
-
-            buildPhaseCargoCommand = ''
-              cargo run -p dagrid-xtask -- bundle dagrid-plugin-export
-            '';
-
-            postInstall = ''
+            cargoExtraArgs = "-p dagrid-plugin-export";
+            src = fileSetForCrate ./.;
+            installPhaseCommand = ''
+              cargo run -p dagrid-xtask -- bundle dagrid-plugin-export;
+              mkdir -p $out;
               mv /build/source/target/bundled/dagrid-plugin-export.clap $out/dagrid.clap
             '';
+          }
+        );
+
+        dagrid-standalone = craneLib.buildPackage (
+          individualCrateArgs
+          // {
+            inherit cargoArtifacts;
+
+            pname = "dagrid";
+            src = fileSetForCrate ./.;
           }
         );
       in
       {
 
         checks = {
-          inherit dagrid-plugin;
+          inherit dagrid-plugin dagrid-standalone;
 
-          my-workspace-clippy = craneLib.cargoClippy (
+          check-clippy = craneLib.cargoClippy (
             commonArgs
             // {
               inherit cargoArtifacts;
@@ -137,13 +146,13 @@
             }
           );
 
-          my-workspace-doc = craneLib.cargoDoc (commonArgs // { inherit cargoArtifacts; });
+          check-doc = craneLib.cargoDoc (commonArgs // { inherit cargoArtifacts; });
 
-          my-workspace-fmt = craneLib.cargoFmt { inherit src; };
+          check-fmt = craneLib.cargoFmt { inherit src; };
 
-          my-workspace-audit = craneLib.cargoAudit { inherit src advisory-db; };
+          check-audit = craneLib.cargoAudit { inherit src advisory-db; };
 
-          my-workspace-nextest = craneLib.cargoNextest (
+          check-nextest = craneLib.cargoNextest (
             commonArgs
             // {
               inherit cargoArtifacts;
@@ -156,14 +165,14 @@
         packages =
           {
             inherit dagrid-plugin;
+            default = dagrid-standalone;
           }
           // lib.optionalAttrs (!pkgs.stdenv.isDarwin) {
-            my-workspace-llvm-coverage = craneLibLLvmTools.cargoLlvmCov (
-              commonArgs // { inherit cargoArtifacts; }
-            );
+            llvm-coverage = craneLibLLvmTools.cargoLlvmCov (commonArgs // { inherit cargoArtifacts; });
           };
 
         apps = {
+          default = flake-utils.lib.mkApp { drv = dagrid-standalone; };
           dagrid-plugin = flake-utils.lib.mkApp { drv = dagrid-plugin; };
         };
 
@@ -172,7 +181,10 @@
 
           packages = with pkgs; [
             rust-analyzer
+            pipewire.jack
           ];
+
+          LD_LIBRARY_PATH = "$LD_LIBRARY_PATH:${with pkgs; pkgs.lib.makeLibraryPath [ libjack2 ]}";
         };
       }
     );
